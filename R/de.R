@@ -150,7 +150,13 @@ de.sample_ind = function(model, data, sampler, sampler_vector,
 }
 
 set_eval_true = function(x){
-     lapply(x,function(x){ attr(x,'eval')=TRUE; x})
+     if (is.list(x))
+     {
+          rapply(x,function(x){ attr(x,'eval')=TRUE; x},how='replace')
+     } else {
+          lapply(x,function(x){ attr(x,'eval')=TRUE; x})
+     }
+
 }
 
 
@@ -184,7 +190,9 @@ de.sample = function(model, data, sampler, sampler_matrix,
      # initialize theta chains
      cat('\n','Initializing level-1 parameters')
      for (s in 1:n_subj) {
+          cat('\n','Subject:',s,'/',n_subj,' Chain: ')
           for (k in 1:n_chains) {
+               cat(k,' ')
                while (weight_theta[k,1,s] == -Inf) {
                     for (p in 1:n_pars) {
                          theta[k,p,1,s] = model$initializer(model$theta[p])

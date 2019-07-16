@@ -1,25 +1,5 @@
 rm(list=ls())
 library(derp)
-#
-# z = function()
-# {
-#      x = 1
-#      y = get('y',envir = parent.env(parent.frame()))
-#      print(paste0('current ',y))
-#      print(ls(envir = parent.env(parent.frame())))
-#      new_y = y+1
-#      assign('y',new_y,envir= parent.env(parent.frame()))
-#      print(paste0('new ',new_y))
-# }
-# f = function()
-# {
-#      z()
-# }
-# e = new.env()
-# environment(f) = e
-# assign('y',1,envir=e)
-#
-# f()
 
 
 #### Simulate data
