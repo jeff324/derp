@@ -204,7 +204,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                          {
                               theta[k,p,1,s] = model$initializer(model$theta[p])
                          } else {
-                              theta[k,p,1,s] = init_theta[k,p,1,s]
+                              theta[k,p,1,s] = init_theta[[s]][theta_names[p]] + model$initializer(model$theta[p])
                          }
 
                     }
@@ -213,7 +213,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                          {
                               phi[k,p,1] = model$initializer(model$phi[p])
                          } else {
-                              phi[k,p,1] = init_phi[k,p,1]
+                              phi[k,p,1] = init_phi[phi_names[p]] + model$initializer(model$phi[p])
                          }
                     }
                     x_phi = phi[k,,1]
@@ -241,7 +241,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                     {
                          phi[k,p,1] = model$initializer(model$phi[p])
                     } else {
-                         phi[k,p,1] = init_phi[k,p,1]
+                         phi[k,p,1] = init_phi[phi_names[p]] + model$initializer(model$phi[p])
                     }
                }
                x_phi = phi[k,,1]
