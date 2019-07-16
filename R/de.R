@@ -164,7 +164,7 @@ set_eval_true = function(x){
 de.sample = function(model, data, sampler, sampler_matrix,
                      num_samples, n_chains,
                      migrate_start, migrate_end,
-                     migrate_step, rand_phi, update)
+                     migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc)
 {
 
      n_pars = length(model$theta)
@@ -188,17 +188,33 @@ de.sample = function(model, data, sampler, sampler_matrix,
      colnames(phi) = phi_names
 
      # initialize theta chains
+
      cat('\n','Initializing level-1 parameters')
+     if (!is.null(init_theta))
+     {
+          cat('\n','Initializing with user-supplied values')
+     }
      for (s in 1:n_subj) {
           cat('\n','Subject:',s,'/',n_subj,' Chain: ')
           for (k in 1:n_chains) {
                cat(k,' ')
                while (weight_theta[k,1,s] == -Inf) {
                     for (p in 1:n_pars) {
-                         theta[k,p,1,s] = model$initializer(model$theta[p])
+                         if (is.null(init_theta))
+                         {
+                              theta[k,p,1,s] = model$initializer(model$theta[p])
+                         } else {
+                              theta[k,p,1,s] = init_theta[k,p,1,s]
+                         }
+
                     }
                     for (p in 1:n_hpars) {
-                         phi[k,p,1] = model$initializer(model$phi[p])
+                         if (is.null(init_phi))
+                         {
+                              phi[k,p,1] = model$initializer(model$phi[p])
+                         } else {
+                              phi[k,p,1] = init_phi[k,p,1]
+                         }
                     }
                     x_phi = phi[k,,1]
                     x_theta = theta[k, ,1,s]
@@ -212,10 +228,21 @@ de.sample = function(model, data, sampler, sampler_matrix,
 
      #initialize phi chains
      cat('\n','Initializing level-2 parameters')
+     if (!is.null(init_phi))
+     {
+          cat('\n','Initializing with user-supplied values')
+     }
+     cat('\n','Chain: ')
      for (k in 1:n_chains) {
+          cat(k,' ')
           while (weight_phi[k,1] == -Inf) {
                for (p in 1:n_hpars) {
-                    phi[k,p,1] = model$initializer(model$phi[p])
+                    if (is.null(init_phi))
+                    {
+                         phi[k,p,1] = model$initializer(model$phi[p])
+                    } else {
+                         phi[k,p,1] = init_phi[k,p,1]
+                    }
                }
                x_phi = phi[k,,1]
                lp = 0
@@ -347,9 +374,13 @@ de.sample = function(model, data, sampler, sampler_matrix,
      }
 
      samples = list('level_1'=theta,'level_2'=phi)
-     mcmc_list = utility.as_mcmc_list(samples)
 
-     return(mcmc_list)
+     if (return_as_mcmc)
+     {
+          samples = utility.as_mcmc_list(samples)
+     }
+
+     return(samples)
 
 }
 

@@ -40,7 +40,8 @@
 run_mcmc = function(model, pars=NULL, data,
                     sampler='de', num_samples=NULL, num_chains=NULL,
                     migration_start=NULL, migration_end=NULL,
-                    migration_freq=NULL, randomize_phi=TRUE, update=100)
+                    migration_freq=NULL, randomize_phi=TRUE, update=100,
+                    init_theta=NULL, init_phi=NULL, return_as_mcmc = TRUE)
 {
 
      if (!is.null(pars))
@@ -127,7 +128,7 @@ run_mcmc = function(model, pars=NULL, data,
 
           out = de.sample(model, data, sampler_funs, sampler_matrix, num_samples,
                           num_chains, migration_start, migration_end,
-                          migration_freq, randomize_phi, update)
+                          migration_freq, randomize_phi, update, init_theta, init_phi, return_as_mcmc)
 
      } else {
 
