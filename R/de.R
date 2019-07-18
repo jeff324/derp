@@ -206,7 +206,10 @@ de.sample = function(model, data, sampler, sampler_matrix,
                          {
                               theta[k,p,1,s] = model$initializer(model$theta[p])
                          } else {
-                              theta[k,p,1,s] = as.numeric(init_theta[[s]][theta_names[p]]) + model$initializer(model$theta[p])
+                              init_try = as.numeric(init_theta[[s]][theta_names[p]]) + model$initializer(model$theta[p])
+                              init_try = pmax(init_try,model$pars[[p]]$init[3])
+                              init_try = pmin(init_try,model$pars[[p]]$init[4])
+                              theta[k,p,1,s] = init_try
                          }
 
                     }
@@ -258,6 +261,19 @@ de.sample = function(model, data, sampler, sampler_matrix,
                log_prob()
                weight_phi[k,1] = e_lp$lp__ + lp #hyperprior
           }
+     }
+
+     if (parallel_backend == 'MPI')
+     {
+          cl = doMPI::startMPIcluster()
+          doMPI::registerDoMPI(cl)
+     }
+
+     if (parallel_backend == 'doParallel')
+     {
+          n_cores = parallel::detectCores(all.tests = FALSE, logical = TRUE)
+          cl = parallel::makeCluster(n_cores)
+          doParallel::registerDoParallel(cl)
      }
 
      # run DE-MCMC
@@ -352,19 +368,6 @@ de.sample = function(model, data, sampler, sampler_matrix,
 
           if (!is.null(parallel_backend))
           {
-               if (parallel_backend == 'MPI')
-               {
-                    cl = doMPI::startMPIcluster()
-                    doMPI::registerDoMPI(cl)
-               }
-
-               if (parallel_backend == 'doParallel')
-               {
-                    n_cores = parallel::detectCores(all.tests = FALSE, logical = TRUE)
-                    cl = parallel::makeCluster(n_cores)
-                    doParallel::registerDoParallel(cl)
-               }
-
                out = foreach(s = 1:n_subj) %dopar% {
                     if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
                          m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
