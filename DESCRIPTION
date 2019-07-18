@@ -13,5 +13,7 @@ Imports:
      msm,
      R6,
      reshape2,
-     coda
+     coda,
+     foreach,
+     doParallel
 RoxygenNote: 6.0.1

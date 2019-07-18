@@ -6,7 +6,9 @@
 \usage{
 run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
   num_chains = NULL, migration_start = NULL, migration_end = NULL,
-  migration_freq = NULL, randomize_phi = TRUE, update = 100)
+  migration_freq = NULL, randomize_phi = TRUE, update = 100,
+  init_theta = NULL, init_phi = NULL, return_as_mcmc = TRUE,
+  parallel_backend = NULL)
 }
 \arguments{
 \item{model}{A \code{function}. Defines a Bayesian model. See example below.}

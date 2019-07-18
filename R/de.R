@@ -1,3 +1,5 @@
+#' @import foreach
+
 de = function(current_chain, current_iter, num_chains, pars, par_names)
 {
      gamma = 2.38/sqrt(2*length(pars[current_chain,]))
@@ -154,7 +156,7 @@ set_eval_true = function(x){
      {
           rapply(x,function(x){ attr(x,'eval')=TRUE; x},how='replace')
      } else {
-          lapply(x,function(x){ attr(x,'eval')=TRUE; x})
+          lapply(x,function(x){ if (!is.na(x)) attr(x,'eval')=TRUE; x})
      }
 
 }
@@ -164,7 +166,8 @@ set_eval_true = function(x){
 de.sample = function(model, data, sampler, sampler_matrix,
                      num_samples, n_chains,
                      migrate_start, migrate_end,
-                     migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc)
+                     migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc,
+                     parallel_backend)
 {
 
      n_pars = length(model$theta)
@@ -195,16 +198,15 @@ de.sample = function(model, data, sampler, sampler_matrix,
           cat('\n','Initializing with user-supplied values')
      }
      for (s in 1:n_subj) {
-          cat('\n','Subject:',s,'/',n_subj,' Chain: ')
+          cat('\n','Subject:',s,'/',n_subj)
           for (k in 1:n_chains) {
-               cat(k,' ')
                while (weight_theta[k,1,s] == -Inf) {
                     for (p in 1:n_pars) {
                          if (is.null(init_theta))
                          {
                               theta[k,p,1,s] = model$initializer(model$theta[p])
                          } else {
-                              theta[k,p,1,s] = init_theta[[s]][theta_names[p]] + model$initializer(model$theta[p])
+                              theta[k,p,1,s] = as.numeric(init_theta[[s]][theta_names[p]]) + model$initializer(model$theta[p])
                          }
 
                     }
@@ -213,7 +215,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                          {
                               phi[k,p,1] = model$initializer(model$phi[p])
                          } else {
-                              phi[k,p,1] = init_phi[phi_names[p]] + model$initializer(model$phi[p])
+                              phi[k,p,1] = as.numeric(init_phi[phi_names[p]]) + model$initializer(model$phi[p])
                          }
                     }
                     x_phi = phi[k,,1]
@@ -241,7 +243,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                     {
                          phi[k,p,1] = model$initializer(model$phi[p])
                     } else {
-                         phi[k,p,1] = init_phi[phi_names[p]] + model$initializer(model$phi[p])
+                         phi[k,p,1] = as.numeric(init_phi[phi_names[p]]) + model$initializer(model$phi[p])
                     }
                }
                x_phi = phi[k,,1]
@@ -348,29 +350,88 @@ de.sample = function(model, data, sampler, sampler_matrix,
                chain_idx = sample(1:n_chains, size=n_chains, replace=FALSE)
           }
 
-          for (s in 1:n_subj) {
-               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
-                    m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
-                    theta[,,i,s] = m_out[[1]]
-                    weight_theta[,i,s] = m_out[[2]]
-               } else {
-                    for (k in 1:n_chains) {
-                         temp = proposal(sampler[[sampler_matrix[i,1]]],k,i,n_chains,theta[,,i-1,s],theta_names)
-                         x_theta = temp
-                         x_phi = phi[chain_idx[k],,i]
-                         list2env(c(set_eval_true(data[[s]]),set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
-                         log_prob()
-                         weight = e_lp$lp__ #likelihood + prior
-                         if (accept(weight_theta[k,i-1,s],weight)) {
-                              theta[k,,i,s] = temp
-                              weight_theta[k,i,s] = weight
-                         } else {
-                              theta[k,,i,s] = theta[k,,i-1,s]
-                              weight_theta[k,i,s] = weight_theta[k,i-1,s]
+          if (!is.null(parallel_backend))
+          {
+               if (parallel_backend == 'MPI')
+               {
+                    cl = doMPI::startMPIcluster()
+                    doMPI::registerDoMPI(cl)
+               }
+
+               if (parallel_backend == 'doParallel')
+               {
+                    n_cores = parallel::detectCores(all.tests = FALSE, logical = TRUE)
+                    cl = parallel::makeCluster(n_cores)
+                    doParallel::registerDoParallel(cl)
+               }
+
+               out = foreach(s = 1:n_subj) %dopar% {
+                    if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
+                         m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
+                         theta[,,i,s] = m_out[[1]]
+                         weight_theta[,i,s] = m_out[[2]]
+                    } else {
+                         for (k in 1:n_chains) {
+                              temp = proposal(sampler[[sampler_matrix[i,1]]],k,i,n_chains,theta[,,i-1,s],theta_names)
+                              x_theta = temp
+                              x_phi = phi[chain_idx[k],,i]
+                              list2env(c(set_eval_true(data[[s]]),set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
+                              log_prob()
+                              weight = e_lp$lp__ #likelihood + prior
+                              if (accept(weight_theta[k,i-1,s],weight)) {
+                                   theta[k,,i,s] = temp
+                                   weight_theta[k,i,s] = weight
+                              } else {
+                                   theta[k,,i,s] = theta[k,,i-1,s]
+                                   weight_theta[k,i,s] = weight_theta[k,i-1,s]
+                              }
+
+                         }
+                    }
+                    list(theta,weight_theta)
+               }
+
+               for (s in 1:n_subj)
+               {
+                    theta[,,,s] = out[[s]][[1]][,,,s]
+                    weight_theta[,,s] = out[[s]][[2]][,,s]
+               }
+
+          } else {
+               for (s in 1:n_subj) {
+                    if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
+                         m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
+                         theta[,,i,s] = m_out[[1]]
+                         weight_theta[,i,s] = m_out[[2]]
+                    } else {
+                         for (k in 1:n_chains) {
+                              temp = proposal(sampler[[sampler_matrix[i,1]]],k,i,n_chains,theta[,,i-1,s],theta_names)
+                              x_theta = temp
+                              x_phi = phi[chain_idx[k],,i]
+                              list2env(c(set_eval_true(data[[s]]),set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
+                              log_prob()
+                              weight = e_lp$lp__ #likelihood + prior
+                              if (accept(weight_theta[k,i-1,s],weight)) {
+                                   theta[k,,i,s] = temp
+                                   weight_theta[k,i,s] = weight
+                              } else {
+                                   theta[k,,i,s] = theta[k,,i-1,s]
+                                   weight_theta[k,i,s] = weight_theta[k,i-1,s]
+                              }
                          }
                     }
                }
           }
+     }
+
+     if (parallel_backend == 'MPI')
+     {
+          doMPI::closeCluster(cl)
+     }
+
+     if (parallel_backend == 'doParallel')
+     {
+          doParallel::stopImplicitCluster()
      }
 
      samples = list('level_1'=theta,'level_2'=phi)
