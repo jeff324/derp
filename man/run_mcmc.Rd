@@ -8,7 +8,7 @@ run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
   num_chains = NULL, migration_start = NULL, migration_end = NULL,
   migration_freq = NULL, randomize_phi = TRUE, update = 100,
   init_theta = NULL, init_phi = NULL, return_as_mcmc = TRUE,
-  parallel_backend = NULL)
+  parallel_backend = "none")
 }
 \arguments{
 \item{model}{A \code{function}. Defines a Bayesian model. See example below.}
@@ -25,10 +25,16 @@ run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
 
 \item{migration_freq}{A \code{numeric}. Number of iterations to wait between each migration step. If \code{NULL}, migration is not done.}
 
-\item{randomize_phi}{A \code{logical}. Should the correlational structure between level-1 and level-2 parameters be ignored.
-Oftentimes, ignoring this correlation will lead to better sampling.}
+\item{randomize_phi}{A \code{logical}. Should the correlational structure between level-1 and level-2 parameters be ignored.}
 
 \item{update}{A \code{numeric}. Specifies the number of iterations before printing the current iteration number to the console.}
+
+\item{init_theta}{A list where each element contains a named vector of parameter initial start values for each subject.}
+
+\item{init_phi}{A named vector parameter initial start values}
+
+\item{parallel_backend}{A character vector either 'MPI', 'doParallel', or 'none' indicating backend for parallelization. Default is none.
+Oftentimes, ignoring this correlation will lead to better sampling.}
 
 \item{migration.start}{A \code{numeric}. Iteration to start migrating. This should be after chains are burned in. If \code{NULL}, migration is not done.}
 
