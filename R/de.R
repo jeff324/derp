@@ -272,6 +272,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
      if (parallel_backend == 'doParallel')
      {
           n_cores = parallel::detectCores(all.tests = FALSE, logical = TRUE)
+          cat('\n','Running on', n_cores, 'cores')
           cl = parallel::makeCluster(n_cores)
           doParallel::registerDoParallel(cl)
      }
