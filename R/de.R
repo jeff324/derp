@@ -462,7 +462,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                     if (projected_time > 60)
                     {
                          cat('\n','Projected time', projected_time/60, 'hours')
-                    } eles {
+                    } else {
                          cat('\n','Projected time', projected_time, 'mins')
                     }
                } else {
