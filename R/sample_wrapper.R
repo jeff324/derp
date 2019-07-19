@@ -43,7 +43,7 @@
 #' }
 #' @export
 run_mcmc = function(model, pars=NULL, data,
-                    sampler='de', num_samples=NULL, num_chains=NULL,
+                    sampler='de', num_samples=NULL, num_chains=NULL, migrate=FALSE,
                     migration_start=NULL, migration_end=NULL,
                     migration_freq=NULL, randomize_phi=TRUE, update=100,
                     init_theta=NULL, init_phi=NULL, return_as_mcmc = TRUE,
@@ -133,7 +133,7 @@ run_mcmc = function(model, pars=NULL, data,
           sampler_matrix = get_sampler_matrix(sampler_list)
 
           out = de.sample(model, data, sampler_funs, sampler_matrix, num_samples,
-                          num_chains, migration_start, migration_end,
+                          num_chains, migrate, migration_start, migration_end,
                           migration_freq, randomize_phi, update, init_theta, init_phi, return_as_mcmc,
                           parallel_backend,n_cores,benchmark)
 

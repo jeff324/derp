@@ -164,7 +164,7 @@ set_eval_true = function(x){
 
 
 de.sample = function(model, data, sampler, sampler_matrix,
-                     num_samples, n_chains,
+                     num_samples, n_chains, migrate,
                      migrate_start, migrate_end,
                      migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc,
                      parallel_backend,n_cores,benchmark)
@@ -263,11 +263,6 @@ de.sample = function(model, data, sampler, sampler_matrix,
           }
      }
 
-     if (parallel_backend == 'MPI')
-     {
-          cl = doMPI::startMPIcluster()
-          doMPI::registerDoMPI(cl)
-     }
 
      if (parallel_backend == 'doParallel')
      {
@@ -278,6 +273,11 @@ de.sample = function(model, data, sampler, sampler_matrix,
           cat('\n','Running on', n_cores, 'cores')
           cl = parallel::makeCluster(n_cores)
           doParallel::registerDoParallel(cl)
+
+          if (migrate)
+          {
+               cat('\n','Migration unavailable for multi-core.')
+          }
      }
 
      # run DE-MCMC
@@ -301,7 +301,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
           for (p in 1:n_blocks) {
                par_range = model$blocks[[p]]
                #migration step
-               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
+               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & migrate) {
                     phi_constant = phi[,,i]
                     #gets weights corresponding to parameter block, holding other parameters constant
                     weight_constant = NULL
@@ -376,8 +376,8 @@ de.sample = function(model, data, sampler, sampler_matrix,
           if (benchmark)
           {
                end_time = Sys.time()
-               total_time = end_time - start_time
-               cat('\n','Level-2 time',total_time)
+               total_time_l2 = difftime(end_time, start_time)
+               cat('\n','Level-2 time',total_time_l2,units(total_time_l2))
           }
 
           #sample theta
@@ -392,43 +392,39 @@ de.sample = function(model, data, sampler, sampler_matrix,
 
           if (parallel_backend != 'none')
           {
-               out = foreach(s = 1:n_subj) %dopar% {
-                    if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
-                         m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
-                         theta[,,i,s] = m_out[[1]]
-                         weight_theta[,i,s] = m_out[[2]]
-                    } else {
-                         for (k in 1:n_chains) {
-                              temp = proposal(sampler[[sampler_matrix[i,1]]],k,i,n_chains,theta[,,i-1,s],theta_names)
-                              x_theta = temp
-                              x_phi = phi[chain_idx[k],,i]
-                              list2env(c(set_eval_true(data[[s]]),set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
-                              log_prob()
-                              weight = e_lp$lp__ #likelihood + prior
-                              if (accept(weight_theta[k,i-1,s],weight)) {
-                                   theta[k,,i,s] = temp
-                                   weight_theta[k,i,s] = weight
-                              } else {
-                                   theta[k,,i,s] = theta[k,,i-1,s]
-                                   weight_theta[k,i,s] = weight_theta[k,i-1,s]
-                              }
+               theta_i = theta[,,(i-1):i,]
+               weight_theta_i = weight_theta[,(i-1):i,]
 
+               out = foreach(s = 1:n_subj) %dopar% {
+                    for (k in 1:n_chains) {
+                         temp = proposal(sampler[[sampler_matrix[i,1]]],k,i,n_chains,theta_i[,,1,s],theta_names)
+                         x_theta = temp
+                         x_phi = phi[chain_idx[k],,i]
+                         list2env(c(set_eval_true(data[[s]]),set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
+                         log_prob()
+                         weight = e_lp$lp__ #likelihood + prior
+                         if (accept(weight_theta_i[k,1,s],weight)) {
+                              theta_i[k,,2,s] = temp
+                              weight_theta_i[k,2,s] = weight
+                         } else {
+                              theta_i[k,,2,s] = theta_i[k,,1,s]
+                              weight_theta_i[k,2,s] = weight_theta_i[k,1,s]
                          }
                     }
-                    list(theta[,,i,s],weight_theta[,i,s])
+                    list(theta_i[,,,s],weight_theta_i[,,s])
                }
 
                for (s in 1:n_subj)
                {
-                    theta[,,i,s] = out[[s]][[1]]
-                    weight_theta[,i,s] = out[[s]][[2]]
+                    theta[,,i,s] = out[[s]][[1]][,,2]
+                    weight_theta[,i,s] = out[[s]][[2]][,2]
                }
 
 
           } else {
 
                for (s in 1:n_subj) {
-                    if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
+                    if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & migrate) {
                          m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
                          theta[,,i,s] = m_out[[1]]
                          weight_theta[,i,s] = m_out[[2]]
@@ -454,14 +450,20 @@ de.sample = function(model, data, sampler, sampler_matrix,
           if (benchmark)
           {
                end_time = Sys.time()
-               total_time = end_time - start_time
-               cat('\n','Level-1 time',total_time)
+               total_time_l1 = difftime(end_time, start_time)
+               total_time = total_time_l1 + total_time_l2
+               projected_time = total_time * (num_samples - i)
+               cat('\n','Level-1 time',total_time_l1, units(total_time_l1))
+               cat('\n','Total iteration time',total_time, units(total_time))
+               if (units(projected_time) == 'secs' & as.numeric(projected_time,units='secs') > 60)
+               {
+                    #compute projected time with minutes
+                    projected_time = as.numeric(projected_time,units='mins')
+                    cat('\n','Projected time', projected_time, 'mins')
+               } else {
+                    cat('\n','Projected time', projected_time, units(projected_time))
+               }
           }
-     }
-
-     if (parallel_backend == 'MPI')
-     {
-          doMPI::closeCluster(cl)
      }
 
      if (parallel_backend == 'doParallel')
