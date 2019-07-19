@@ -167,7 +167,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                      num_samples, n_chains,
                      migrate_start, migrate_end,
                      migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc,
-                     parallel_backend)
+                     parallel_backend,benchmark)
 {
 
      n_pars = length(model$theta)
@@ -290,6 +290,10 @@ de.sample = function(model, data, sampler, sampler_matrix,
                chain_idx = sample(1:n_chains, size=n_chains, replace=FALSE)
           }
 
+          if (benchmark)
+          {
+               start_time = Sys.time()
+          }
           phi[,,i] = phi[,,i-1]
           for (p in 1:n_blocks) {
                par_range = model$blocks[[p]]
@@ -338,17 +342,21 @@ de.sample = function(model, data, sampler, sampler_matrix,
                     }
                } else {
                     #crossover step
+
                     for (k in 1:n_chains) {
                          temp = phi[k,,i]
                          temp[par_range] = proposal(sampler[[sampler_matrix[i,p+1]]],k,i,n_chains,phi[,par_range,i],phi_names[par_range])
                          x_phi = temp
+
                          lp = 0
-                         for (s in 1:n_subj) {
+                         for (s in 1:n_subj)
+                         {
                               x_theta = theta[chain_idx[k],,i-1,s]
                               list2env(c(data[[1]],set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
                               log_prob()
                               lp = lp + e_lp$lp__ #prior
                          }
+
                          list2env(c(data[[1]],x_theta,set_eval_true(x_phi),c('lp__'=0)),e_lp)
                          log_prob()
                          weight = lp + e_lp$lp__  #prior + hyperprior
@@ -362,12 +370,24 @@ de.sample = function(model, data, sampler, sampler_matrix,
                }
           }
 
+          if (benchmark)
+          {
+               end_time = Sys.time()
+               total_time = end_time - start_time
+               cat('\n','Level-2 time',total_time)
+          }
+
           #sample theta
           if (rand_phi) {
                chain_idx = sample(1:n_chains, size=n_chains, replace=FALSE)
           }
 
-          if (!is.null(parallel_backend))
+          if (benchmark)
+          {
+               start_time = Sys.time()
+          }
+
+          if (parallel_backend != 'none')
           {
                out = foreach(s = 1:n_subj) %dopar% {
                     if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
@@ -392,16 +412,18 @@ de.sample = function(model, data, sampler, sampler_matrix,
 
                          }
                     }
-                    list(theta,weight_theta)
+                    list(theta[,,i,s],weight_theta[,i,s])
                }
 
                for (s in 1:n_subj)
                {
-                    theta[,,,s] = out[[s]][[1]][,,,s]
-                    weight_theta[,,s] = out[[s]][[2]][,,s]
+                    theta[,,i,s] = out[[s]][[1]]
+                    weight_theta[,i,s] = out[[s]][[2]]
                }
 
+
           } else {
+
                for (s in 1:n_subj) {
                     if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
                          m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
@@ -425,6 +447,12 @@ de.sample = function(model, data, sampler, sampler_matrix,
                          }
                     }
                }
+          }
+          if (benchmark)
+          {
+               end_time = Sys.time()
+               total_time = end_time - start_time
+               cat('\n','Level-1 time',total_time)
           }
      }
 
