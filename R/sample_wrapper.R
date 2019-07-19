@@ -14,6 +14,8 @@
 #' @param init_theta A list where each element contains a named vector of parameter initial start values for each subject.
 #' @param init_phi A named vector parameter initial start values
 #' @param parallel_backend A character vector either 'MPI', 'doParallel', or 'none' indicating backend for parallelization. Default is none.
+#' @param n_cores A \code{numeric}. Number of cores when parallel_backend is specified.
+#' @param benchmark A \code{logical}. Produces compute times benchmark purposes.
 #' Oftentimes, ignoring this correlation will lead to better sampling.
 #' @param update A \code{numeric}. Specifies the number of iterations before printing the current iteration number to the console.
 #' @examples
@@ -45,7 +47,7 @@ run_mcmc = function(model, pars=NULL, data,
                     migration_start=NULL, migration_end=NULL,
                     migration_freq=NULL, randomize_phi=TRUE, update=100,
                     init_theta=NULL, init_phi=NULL, return_as_mcmc = TRUE,
-                    parallel_backend='none',benchmark=FALSE)
+                    parallel_backend='none',n_cores=NULL,benchmark=FALSE)
 {
 
      if (!is.null(pars))
@@ -133,7 +135,7 @@ run_mcmc = function(model, pars=NULL, data,
           out = de.sample(model, data, sampler_funs, sampler_matrix, num_samples,
                           num_chains, migration_start, migration_end,
                           migration_freq, randomize_phi, update, init_theta, init_phi, return_as_mcmc,
-                          parallel_backend,benchmark)
+                          parallel_backend,n_cores,benchmark)
 
      } else {
 

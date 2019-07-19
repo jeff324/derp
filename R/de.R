@@ -167,7 +167,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                      num_samples, n_chains,
                      migrate_start, migrate_end,
                      migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc,
-                     parallel_backend,benchmark)
+                     parallel_backend,n_cores,benchmark)
 {
 
      n_pars = length(model$theta)
@@ -271,7 +271,10 @@ de.sample = function(model, data, sampler, sampler_matrix,
 
      if (parallel_backend == 'doParallel')
      {
-          n_cores = parallel::detectCores(all.tests = FALSE, logical = TRUE)
+          if (is.null(n_cores))
+          {
+               n_cores = parallel::detectCores(all.tests = FALSE, logical = TRUE)
+          }
           cat('\n','Running on', n_cores, 'cores')
           cl = parallel::makeCluster(n_cores)
           doParallel::registerDoParallel(cl)

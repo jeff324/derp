@@ -8,7 +8,7 @@ run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
   num_chains = NULL, migration_start = NULL, migration_end = NULL,
   migration_freq = NULL, randomize_phi = TRUE, update = 100,
   init_theta = NULL, init_phi = NULL, return_as_mcmc = TRUE,
-  parallel_backend = "none")
+  parallel_backend = "none", n_cores = NULL, benchmark = FALSE)
 }
 \arguments{
 \item{model}{A \code{function}. Defines a Bayesian model. See example below.}
@@ -33,7 +33,11 @@ run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
 
 \item{init_phi}{A named vector parameter initial start values}
 
-\item{parallel_backend}{A character vector either 'MPI', 'doParallel', or 'none' indicating backend for parallelization. Default is none.
+\item{parallel_backend}{A character vector either 'MPI', 'doParallel', or 'none' indicating backend for parallelization. Default is none.}
+
+\item{n_cores}{A \code{numeric}. Number of cores when parallel_backend is specified.}
+
+\item{benchmark}{A \code{logical}. Produces compute times benchmark purposes.
 Oftentimes, ignoring this correlation will lead to better sampling.}
 
 \item{migration.start}{A \code{numeric}. Iteration to start migrating. This should be after chains are burned in. If \code{NULL}, migration is not done.}
