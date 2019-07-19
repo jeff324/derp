@@ -465,6 +465,9 @@ de.sample = function(model, data, sampler, sampler_matrix,
                     } else {
                          cat('\n','Projected time', projected_time, 'mins')
                     }
+               } else if (units(projected_time) == 'mins' & as.numeric(projected_time,units='mins') > 60)
+               {
+                    cat('\n','Projected time', projected_time/60, 'hours')
                } else {
                     cat('\n','Projected time', projected_time, units(projected_time))
                }
