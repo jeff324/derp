@@ -459,7 +459,12 @@ de.sample = function(model, data, sampler, sampler_matrix,
                {
                     #compute projected time with minutes
                     projected_time = as.numeric(projected_time,units='mins')
-                    cat('\n','Projected time', projected_time, 'mins')
+                    if (projected_time > 60)
+                    {
+                         cat('\n','Projected time', projected_time/60, 'hours')
+                    } eles {
+                         cat('\n','Projected time', projected_time, 'mins')
+                    }
                } else {
                     cat('\n','Projected time', projected_time, units(projected_time))
                }
