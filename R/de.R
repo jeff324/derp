@@ -274,10 +274,6 @@ de.sample = function(model, data, sampler, sampler_matrix,
           cl = parallel::makeCluster(n_cores)
           doParallel::registerDoParallel(cl)
 
-          if (migrate)
-          {
-               cat('\n','Migration unavailable for multi-core.')
-          }
      }
 
      # run DE-MCMC
@@ -302,6 +298,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
                par_range = model$blocks[[p]]
                #migration step
                if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & migrate) {
+                    if(p == 1) cat('\n','Migration Step')
                     phi_constant = phi[,,i]
                     #gets weights corresponding to parameter block, holding other parameters constant
                     weight_constant = NULL
@@ -392,34 +389,40 @@ de.sample = function(model, data, sampler, sampler_matrix,
 
           if (parallel_backend != 'none')
           {
-               theta_i = theta[,,(i-1):i,]
-               weight_theta_i = weight_theta[,(i-1):i,]
-
-               out = foreach(s = 1:n_subj) %dopar% {
-                    for (k in 1:n_chains) {
-                         temp = proposal(sampler[[sampler_matrix[i,1]]],k,i,n_chains,theta_i[,,1,s],theta_names)
-                         x_theta = temp
-                         x_phi = phi[chain_idx[k],,i]
-                         list2env(c(set_eval_true(data[[s]]),set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
-                         log_prob()
-                         weight = e_lp$lp__ #likelihood + prior
-                         if (accept(weight_theta_i[k,1,s],weight)) {
-                              theta_i[k,,2,s] = temp
-                              weight_theta_i[k,2,s] = weight
-                         } else {
-                              theta_i[k,,2,s] = theta_i[k,,1,s]
-                              weight_theta_i[k,2,s] = weight_theta_i[k,1,s]
-                         }
+               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & migrate) {
+                    cat('\n','Migration Step')
+                    for (s in 1:n_subj) {
+                         m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
+                         theta[,,i,s] = m_out[[1]]
+                         weight_theta[,i,s] = m_out[[2]]
                     }
-                    list(theta_i[,,,s],weight_theta_i[,,s])
+               } else {
+                    theta_i = theta[,,(i-1):i,]
+                    weight_theta_i = weight_theta[,(i-1):i,]
+                    out = foreach(s = 1:n_subj) %dopar% {
+                         for (k in 1:n_chains) {
+                              temp = proposal(sampler[[sampler_matrix[i,1]]],k,i,n_chains,theta_i[,,1,s],theta_names)
+                              x_theta = temp
+                              x_phi = phi[chain_idx[k],,i]
+                              list2env(c(set_eval_true(data[[s]]),set_eval_true(x_theta),x_phi,c('lp__'=0)),e_lp)
+                              log_prob()
+                              weight = e_lp$lp__ #likelihood + prior
+                              if (accept(weight_theta_i[k,1,s],weight)) {
+                                   theta_i[k,,2,s] = temp
+                                   weight_theta_i[k,2,s] = weight
+                              } else {
+                                   theta_i[k,,2,s] = theta_i[k,,1,s]
+                                   weight_theta_i[k,2,s] = weight_theta_i[k,1,s]
+                              }
+                         }
+                         list(theta_i[,,,s],weight_theta_i[,,s])
+                    }
+                    for (s in 1:n_subj)
+                    {
+                         theta[,,i,s] = out[[s]][[1]][,,2]
+                         weight_theta[,i,s] = out[[s]][[2]][,2]
+                    }
                }
-
-               for (s in 1:n_subj)
-               {
-                    theta[,,i,s] = out[[s]][[1]][,,2]
-                    weight_theta[,i,s] = out[[s]][[2]][,2]
-               }
-
 
           } else {
 
