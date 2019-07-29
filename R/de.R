@@ -396,7 +396,9 @@ de.sample = function(model, data, sampler, sampler_matrix,
           if (parallel_backend != 'none')
           {
                if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
-                    cat('\n','Migration Step')
+                    if (i %% update == 0) {
+                         cat('\n','Migration Step')
+                    }
                     for (s in 1:n_subj) {
                          m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
                          theta[,,i,s] = m_out[[1]]
