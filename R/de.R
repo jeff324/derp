@@ -164,7 +164,7 @@ set_eval_true = function(x){
 
 
 de.sample = function(model, data, sampler, sampler_matrix,
-                     num_samples, n_chains, migrate,
+                     num_samples, n_chains,
                      migrate_start, migrate_end,
                      migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc,
                      parallel_backend,n_cores,benchmark)
@@ -297,8 +297,10 @@ de.sample = function(model, data, sampler, sampler_matrix,
           for (p in 1:n_blocks) {
                par_range = model$blocks[[p]]
                #migration step
-               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & migrate) {
-                    if(p == 1) cat('\n','Migration Step')
+               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
+                    if (i %% update == 0) {
+                         if(p == 1) cat('\n','Migration Step')
+                    }
                     phi_constant = phi[,,i]
                     #gets weights corresponding to parameter block, holding other parameters constant
                     weight_constant = NULL
@@ -370,11 +372,13 @@ de.sample = function(model, data, sampler, sampler_matrix,
                }
           }
 
-          if (benchmark)
-          {
-               end_time = Sys.time()
-               total_time_l2 = difftime(end_time, start_time)
-               cat('\n','Level-2 time',total_time_l2,units(total_time_l2))
+          if (i %% update == 0) {
+               if (benchmark)
+               {
+                    end_time = Sys.time()
+                    total_time_l2 = difftime(end_time, start_time)
+                    cat('\n','Level-2 time',total_time_l2,units(total_time_l2))
+               }
           }
 
           #sample theta
@@ -382,14 +386,16 @@ de.sample = function(model, data, sampler, sampler_matrix,
                chain_idx = sample(1:n_chains, size=n_chains, replace=FALSE)
           }
 
-          if (benchmark)
-          {
-               start_time = Sys.time()
+          if (i %% update == 0) {
+               if (benchmark)
+               {
+                    start_time = Sys.time()
+               }
           }
 
           if (parallel_backend != 'none')
           {
-               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & migrate) {
+               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
                     cat('\n','Migration Step')
                     for (s in 1:n_subj) {
                          m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
@@ -427,7 +433,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
           } else {
 
                for (s in 1:n_subj) {
-                    if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & migrate) {
+                    if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
                          m_out = migrate(theta[,,i-1,s],weight_theta[,i-1,s])
                          theta[,,i,s] = m_out[[1]]
                          weight_theta[,i,s] = m_out[[2]]
@@ -450,29 +456,32 @@ de.sample = function(model, data, sampler, sampler_matrix,
                     }
                }
           }
-          if (benchmark)
-          {
-               end_time = Sys.time()
-               total_time_l1 = difftime(end_time, start_time)
-               total_time = total_time_l1 + total_time_l2
-               projected_time = total_time * (num_samples - i)
-               cat('\n','Level-1 time',total_time_l1, units(total_time_l1))
-               cat('\n','Total iteration time',total_time, units(total_time))
-               if (units(projected_time) == 'secs' & as.numeric(projected_time,units='secs') > 60)
+
+          if (i %% update == 0) {
+               if (benchmark)
                {
-                    #compute projected time with minutes
-                    projected_time = as.numeric(projected_time,units='mins')
-                    if (projected_time > 60)
+                    end_time = Sys.time()
+                    total_time_l1 = difftime(end_time, start_time)
+                    total_time = total_time_l1 + total_time_l2
+                    projected_time = total_time * (num_samples - i)
+                    cat('\n','Level-1 time',total_time_l1, units(total_time_l1))
+                    cat('\n','Total iteration time',total_time, units(total_time))
+                    if (units(projected_time) == 'secs' & as.numeric(projected_time,units='secs') > 60)
                     {
-                         cat('\n','Projected time', projected_time/60, 'hours')
+                         #compute projected time with minutes
+                         projected_time = as.numeric(projected_time,units='mins')
+                         if (projected_time > 60)
+                         {
+                              cat('\n','Time left', projected_time/60, 'hours')
+                         } else {
+                              cat('\n','Time left', projected_time, 'mins')
+                         }
+                    } else if (units(projected_time) == 'mins' & as.numeric(projected_time,units='mins') > 60)
+                    {
+                         cat('\n','Time left', projected_time/60, 'hours')
                     } else {
-                         cat('\n','Projected time', projected_time, 'mins')
+                         cat('\n','Time left', projected_time, units(projected_time))
                     }
-               } else if (units(projected_time) == 'mins' & as.numeric(projected_time,units='mins') > 60)
-               {
-                    cat('\n','Projected time', projected_time/60, 'hours')
-               } else {
-                    cat('\n','Projected time', projected_time, units(projected_time))
                }
           }
      }

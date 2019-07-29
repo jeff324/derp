@@ -69,8 +69,8 @@ list(sampler='mh', block=2, iter=c(2001,3000))
 )
 
 #### Run the sampler
-samples = run_mcmc(model, pars, data, sampler=sampler,
-                   migration_start = 500, migration_end = 700,
+samples = run_mcmc(model, pars, data, benchmark = TRUE,
+                   migration_start = 1000, migration_end = 1200,
                    migration_freq = 10, num_samples=3000)
 
 # discard burnin and summarize

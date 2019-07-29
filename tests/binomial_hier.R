@@ -45,10 +45,10 @@ samples = run_mcmc(model, pars, data, sampler='de',
 
 # run_mcmc returns an mcmc.list object from the coda package
 # this makes it easy to run dignostics, summary statistics, and plots using coda
-mcmc_snip = snip(samples,burnin=1000,thin=1)
+mcmc_snip = snip(samples,burnin=500,thin=1)
 summary(mcmc_snip)
 
-coda::traceplot(mcmc_snip[,'mu',])
+coda::traceplot(mcmc_snip[,'mu'])
 
 # it is also easy to convert to matrix
 mcmc_mat = as.matrix(mcmc_snip,iters=TRUE,chains=TRUE)
