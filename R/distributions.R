@@ -35,6 +35,10 @@ tnormal_lpdf = function(x,mean,sd,lower,upper)
      if (!is.null(attr(x,'eval')))
      {
           lp = sum(msm::dtnorm(x=x,mean=mean,sd=sd,lower=lower,upper=upper,log=TRUE))
+          if(mean < lower & is.infinite(lp))
+          {
+                  lp = -Inf
+          }
           new_lp = get('lp__',envir = parent.env(parent.frame())) + lp
           assign('lp__',new_lp,envir = parent.env(parent.frame()))
      }
