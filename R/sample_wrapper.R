@@ -8,9 +8,8 @@
 #' @param num_samples A \code{numeric}. The total number of samples to collect.
 #' @param num_chains A \code{numeric}. The number of chains to run.
 #' @param migration_freq A \code{numeric}. Number of iterations to wait between each migration step. If \code{NULL}, migration is not done.
-#' @param migration_start A \code{numeric}. Iteration to start migrating. This should be after chains are burned in. If \code{NULL}, migration is not done.
-#' @param migration_end A \code{numeric}. Iteration to stop migrating. Migration should stop well before sampling is finished. If \code{NULL}, migration is not done.
-#' @param migrate_subject_only A \code{logical}. If \code{TRUE}, migration only performed on subject-level parameters. Otherwise, migration is performed on all parameters.
+#' @param migration.start A \code{numeric}. Iteration to start migrating. This should be after chains are burned in. If \code{NULL}, migration is not done.
+#' @param migration.end A \code{numeric}. Iteration to stop migrating. Migration should stop well before sampling is finished. If \code{NULL}, migration is not done.
 #' @param randomize_phi A \code{logical}. Should the correlational structure between level-1 and level-2 parameters be ignored.
 #' @param init_theta A list where each element contains a named vector of parameter initial start values for each subject.
 #' @param init_phi A named vector parameter initial start values
@@ -46,7 +45,7 @@
 run_mcmc = function(model, pars=NULL, data,
                     sampler='de', num_samples=NULL, num_chains=NULL,
                     migration_start=NULL, migration_end=NULL,
-                    migration_freq=NULL, migrate_subject_only=FALSE, randomize_phi=TRUE, update=100,
+                    migration_freq=NULL, randomize_phi=TRUE, update=100,
                     init_theta=NULL, init_phi=NULL, return_as_mcmc = TRUE,
                     parallel_backend='none',n_cores=NULL,benchmark=FALSE)
 {
@@ -135,7 +134,7 @@ run_mcmc = function(model, pars=NULL, data,
 
           out = de.sample(model, data, sampler_funs, sampler_matrix, num_samples,
                           num_chains, migration_start, migration_end,
-                          migration_freq, migrate_subject_only, randomize_phi, update, init_theta, init_phi, return_as_mcmc,
+                          migration_freq, randomize_phi, update, init_theta, init_phi, return_as_mcmc,
                           parallel_backend,n_cores,benchmark)
 
      } else {

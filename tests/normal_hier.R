@@ -15,7 +15,7 @@ norm_subj = function() {
      data = list('response'=sim_dat)
 }
 
-for (i in 1:100) {
+for (i in 1:10) {
      data[[i]] = norm_subj()
 }
 
@@ -69,14 +69,14 @@ list(sampler='mh', block=2, iter=c(2001,3000))
 )
 
 #### Run the sampler
-samples = run_mcmc(model, pars, data, benchmark = TRUE,num_chains = 15,
-                   migration_start = 100, migration_end = 150, migrate_subject_only = TRUE,
-                   migration_freq = 10, num_samples=200)
+samples = run_mcmc(model, pars, data, benchmark = TRUE,
+                   migration_start = 1000, migration_end = 1200,
+                   migration_freq = 10, num_samples=3000)
 
 # discard burnin and summarize
 # Note the samples will probably not be good
 # because of our poor sampling scheme
-mcmc_snip = snip(samples,burnin=1,thin=1)
+mcmc_snip = snip(samples,burnin=1000,thin=1)
 summary(mcmc_snip)
 
 coda::traceplot(mcmc_snip[,'mu_mu',])

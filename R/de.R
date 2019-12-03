@@ -166,7 +166,7 @@ set_eval_true = function(x){
 de.sample = function(model, data, sampler, sampler_matrix,
                      num_samples, n_chains,
                      migrate_start, migrate_end,
-                     migrate_step, migrate_subject_only, rand_phi, update, init_theta, init_phi, return_as_mcmc,
+                     migrate_step, rand_phi, update, init_theta, init_phi, return_as_mcmc,
                      parallel_backend,n_cores,benchmark)
 {
 
@@ -297,7 +297,7 @@ de.sample = function(model, data, sampler, sampler_matrix,
           for (p in 1:n_blocks) {
                par_range = model$blocks[[p]]
                #migration step
-               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0) & !migrate_subject_only) {
+               if ((i > migrate_start) & (i < migrate_end) & (i %% migrate_step == 0)) {
                     if (i %% update == 0) {
                          if(p == 1) cat('\n','Migration Step')
                     }

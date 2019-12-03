@@ -6,10 +6,9 @@
 \usage{
 run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
   num_chains = NULL, migration_start = NULL, migration_end = NULL,
-  migration_freq = NULL, migrate_subject_only = FALSE,
-  randomize_phi = TRUE, update = 100, init_theta = NULL,
-  init_phi = NULL, return_as_mcmc = TRUE, parallel_backend = "none",
-  n_cores = NULL, benchmark = FALSE)
+  migration_freq = NULL, randomize_phi = TRUE, update = 100,
+  init_theta = NULL, init_phi = NULL, return_as_mcmc = TRUE,
+  parallel_backend = "none", n_cores = NULL, benchmark = FALSE)
 }
 \arguments{
 \item{model}{A \code{function}. Defines a Bayesian model. See example below.}
@@ -24,13 +23,7 @@ run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
 
 \item{num_chains}{A \code{numeric}. The number of chains to run.}
 
-\item{migration_start}{A \code{numeric}. Iteration to start migrating. This should be after chains are burned in. If \code{NULL}, migration is not done.}
-
-\item{migration_end}{A \code{numeric}. Iteration to stop migrating. Migration should stop well before sampling is finished. If \code{NULL}, migration is not done.}
-
 \item{migration_freq}{A \code{numeric}. Number of iterations to wait between each migration step. If \code{NULL}, migration is not done.}
-
-\item{migrate_subject_only}{A \code{logical}. If \code{TRUE}, migration only performed on subject-level parameters. Otherwise, migration is performed on all parameters.}
 
 \item{randomize_phi}{A \code{logical}. Should the correlational structure between level-1 and level-2 parameters be ignored.}
 
@@ -46,6 +39,10 @@ run_mcmc(model, pars = NULL, data, sampler = "de", num_samples = NULL,
 
 \item{benchmark}{A \code{logical}. Produces compute times benchmark purposes.
 Oftentimes, ignoring this correlation will lead to better sampling.}
+
+\item{migration.start}{A \code{numeric}. Iteration to start migrating. This should be after chains are burned in. If \code{NULL}, migration is not done.}
+
+\item{migration.end}{A \code{numeric}. Iteration to stop migrating. Migration should stop well before sampling is finished. If \code{NULL}, migration is not done.}
 }
 \description{
 \code{powder} Runs power posterior sampling using differential evolution markov chain monte carlo
